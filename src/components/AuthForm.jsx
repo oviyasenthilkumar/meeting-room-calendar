@@ -10,6 +10,7 @@ import {
   sendEmailVerification,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
  const AuthForm = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,13 +38,11 @@ const navigate = useNavigate();
          password
        );
        await sendEmailVerification(userCredential.user);
-       alert(
-         "Verification email sent! Please check your inbox before logging in."
-       );
+       toast.success("Verification email sent! Please check your inbox before logging in.");
        setIsSignUp(false); // Flip back to sign-in mode after signup
      } catch (error) {
        console.error("Sign Up Error:", error.message);
-       alert(error.message);
+       toast.error(error.message);
      }
    } else {
      try {
@@ -53,15 +52,15 @@ const navigate = useNavigate();
          password
        );
        if (!userCredential.user.emailVerified) {
-         alert("Please verify your email before signing in.");
+         toast.warning("Please verify your email before signing in.");
          return;
        }
-       alert("Sign In Successful!");
+       toast.success("Sign In Successful!");
       navigate("/booking");
 
      } catch (error) {
        console.error("Sign In Error:", error.message);
-       alert(error.message);
+      toast.error(error.message);
      }
    }
  };
@@ -71,12 +70,12 @@ const navigate = useNavigate();
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      alert("Google Sign-In Successful!");
+      toast.success("Google Sign-In Successful!");
       navigate("/booking");
 
     } catch (error) {
       console.error("Google Sign-In Error:", error.message);
-      alert(error.message);
+      toast.error(error.message);
     }
   };
 

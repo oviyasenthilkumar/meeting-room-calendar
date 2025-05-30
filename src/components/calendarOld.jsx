@@ -3,18 +3,11 @@ import { serverTimestamp } from "firebase/firestore";
 import { db } from '../components/firebaseConfig'; 
 import { collection, addDoc, getDocs, onSnapshot } from "firebase/firestore";
 import { auth } from "../components/firebaseConfig";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
 import logo from "../assets/logo.png"
 import { doc, updateDoc } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-
-
 export default function MeetingHallBooking() {
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [userName, setUserName] = useState("User");
-  const [userRole, setUserRole] = useState("User");
  const [currentDate, setCurrentDate] = useState(() => {
      const today = new Date();
      today.setHours(0, 0, 0, 0);
@@ -27,9 +20,7 @@ export default function MeetingHallBooking() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
 
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -42,6 +33,7 @@ useEffect(() => {
 
   return () => unsubscribe(); 
 }, []);
+
 
 useEffect(() => {
   const today = new Date();
@@ -58,7 +50,6 @@ useEffect(() => {
     setCurrentDate(today);
   }
 }, [viewMode]);
-
 const [currentWeekStart, setCurrentWeekStart] = useState(() => {
   const today = new Date();
   const day = today.getDay();
@@ -67,7 +58,6 @@ const [currentWeekStart, setCurrentWeekStart] = useState(() => {
   today.setHours(0, 0, 0, 0);
   return today;
 });
-
 const handleNext = () => {
   if (viewMode === "month") {
     setCurrentDate(
@@ -115,7 +105,6 @@ const handleToday = () => {
     setCurrentWeekStart(monday);
   }
 };
-
   const [formData, setFormData] = useState({
     name: "",
     persons: "",
@@ -127,7 +116,6 @@ const handleToday = () => {
   });
 
   const [warning, setWarning] = useState("");
-
   const calculateDuration = (start, end) => {
     const [sh, sm] = start.split(":").map(Number);
     const [eh, em] = end.split(":").map(Number);
@@ -148,7 +136,6 @@ const handleToday = () => {
 
 useEffect(() => {
   const fetchBookings = async () => {
-      setIsLoading(true);
     try {
       const snapshot = await getDocs(collection(db, "meetings"));
       const fetched = snapshot.docs.map((doc) => ({
@@ -160,14 +147,11 @@ useEffect(() => {
     } catch (err) {
       console.error("Error fetching bookings:", err);
     }
-      setIsLoading(false);
   };
 
   fetchBookings();
 }, []);
-
 useEffect(() => {
-    setIsLoading(true);
   const unsubscribe = onSnapshot(collection(db, "meetings"), (snapshot) => {
     const firebaseBookings = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -175,11 +159,11 @@ useEffect(() => {
     }));
     console.log("Live bookings from Firebase:", firebaseBookings);
     setBookings(firebaseBookings);
-      setIsLoading(false);
   });
 
   return () => unsubscribe(); // Cleanup listener on unmount
 }, []);
+
 
   const formatTime12Hour = (time24) => {
     if (!time24) return "";
@@ -223,7 +207,6 @@ useEffect(() => {
     setWarning("");
     setModalOpen(true);
   };
-
   const handleUpdate = async () => {
     try {
       const bookingRef = doc(db, "meetings", selectedBooking.id);
@@ -250,7 +233,6 @@ useEffect(() => {
    const cells = [];
    const today = new Date();
    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toDateString();
 
    const totalSlots = startDay + daysInMonth;
    const totalRows = Math.ceil(totalSlots / 7);
@@ -262,10 +244,7 @@ useEffect(() => {
 
      if (!isInMonth) {
        cells.push(
-          <div
-            key={`empty-${i}`}
-            className="border border-gray-200 min-h-[5rem] sm:min-h-[6rem] bg-gray-50"
-          />
+         <div key={`empty-${i}`} className="border h-24 bg-white"></div>
        );
        continue;
      }
@@ -281,7 +260,7 @@ useEffect(() => {
      const handleClick = () => {
        if (!isPast) {
          setSelectedDate(date);
-          setSelectedBooking(null);
+         setSelectedBooking(null); // it's a fresh booking
          setFormData({
            name: "",
            persons: "",
@@ -300,29 +279,24 @@ useEffect(() => {
        <div
          key={d}
          onClick={handleClick}
-          className={`
-            border border-gray-200 rounded-sm p-2 relative 
-            transition duration-150 ease-in-out group 
-            text-xs sm:text-sm 
-            cursor-${isPast ? "not-allowed" : "pointer"}
-            min-h-[5.5rem] sm:min-h-[7rem] 
-            ${isPast
+         className={`border h-24 p-2 relative transition duration-150 ease-in-out cursor-${
+           isPast ? "not-allowed" : "pointer"
+         } ${
+           isPast
              ? "bg-gray-100 text-gray-400"
              : isToday
-              ? "bg-blue-50 ring-2 ring-blue-400"
-              : "bg-white hover:bg-blue-100/40"}
-          `}
+             ? "bg-blue-100"
+             : "bg-white hover:bg-blue-50"
+         }`}
        >
-          <div className="text-right font-semibold text-gray-600">
+         <div className="text-right text-xs font-semibold text-gray-600">
            {d}
          </div>
-  
-          <div className="absolute top-6 left-1 right-1 space-y-1 overflow-hidden">
+         <div className="absolute top-5 left-1 right-1">
            {events.slice(0, 3).map((b, i) => (
              <div
                key={i}
-                title={`${b.name} (${b.room})`}
-                className="bg-blue-600 text-white text-[11px] px-1.5 py-0.5 rounded shadow-sm truncate hover:bg-blue-700 transition"
+               className="bg-blue-600 text-white text-[11px] px-1 py-0.5 rounded mb-1 overflow-hidden whitespace-nowrap truncate cursor-pointer"
                onClick={(e) => {
                  e.stopPropagation();
                  if (b.email === userEmail) {
@@ -333,17 +307,16 @@ useEffect(() => {
                    setWarning("");
                    setModalOpen(true);
                  } else {
-                   toast.warning("You are not allowed to edit this booking.");
+                   alert("You are not allowed to edit this booking.");
                  }
                }}
              >
                {b.name} ({b.room})
              </div>
            ))}
-  
-            {events.length > 3 && (
+           {events.length > 2 && (
              <div
-                className="text-blue-600 text-xs underline cursor-pointer hover:text-blue-800"
+               className="text-blue-600 text-xs underline cursor-pointer"
                onClick={(e) => {
                  e.stopPropagation();
                  setSelectedDate(date);
@@ -365,11 +338,8 @@ useEffect(() => {
        </div>
      );
    }
-  
    return cells;
  };
-  
-  
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -386,6 +356,43 @@ useEffect(() => {
     return !(end1 <= start2 || start1 >= end2);
   };
 
+  // const handleSubmit = async () => {
+  //   const selectedDateStr = selectedDate.toDateString();
+
+  //   const nextId =
+  //     bookings.length > 0
+  //       ? Math.max(...bookings.map((b) => parseInt(b.userId || 0))) + 1
+  //       : 1;
+
+  //   const newBooking = {
+  //     date: selectedDateStr,
+  //     ...formData,
+  //     email: userEmail,
+  //     status: "pending",
+  //     duration: calculateDuration(formData.start, formData.end),
+  //     userId: nextId.toString(),
+  //     createdAt: serverTimestamp(),
+  //     updatedAt: serverTimestamp(),
+  //   };
+  //   try {
+  //     await addDoc(collection(db, "meetings"), newBooking);
+  //     setBookings([...bookings, newBooking]);
+  //     setFormData({
+  //       name: "",
+  //       persons: "",
+  //       start: "",
+  //       end: "",
+  //       room: "",
+  //       reason: "",
+  //       status: "pending",
+  //     });
+  //     setModalOpen(false);
+  //     setWarning("");
+  //   } catch (error) {
+  //     console.error("Error saving to Firestore:", error);
+  //     setWarning("Failed to save booking. Please try again.");
+  //   }
+  // };
 const handleSubmit = async () => {
   const selectedDateStr = selectedDate.toDateString();
 
@@ -444,12 +451,8 @@ const handleSubmit = async () => {
   }
 };
 
-  const statusIcon = (status) => {
-    if (status === 'accepted') return <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2 align-middle" title="Accepted" />;
-    if (status === 'pending') return <span className="inline-block w-3 h-3 rounded-full bg-yellow-400 mr-2 align-middle" title="Pending" />;
-    if (status === 'rejected') return <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2 align-middle" title="Rejected" />;
-    return null;
-  };
+
+
 
   const renderTodaysSchedule = () => {
     const todaysBookings = bookings.filter((b) => b.date === todayStr);
@@ -467,9 +470,9 @@ const handleSubmit = async () => {
           {todaysBookings.length > 0 ? (
             <ul className="mt-2 text-left space-y-1">
               {todaysBookings.map((b, i) => (
-                <li key={i} className="text-gray-700 flex items-center">
-                  {statusIcon(b.status)}
-                  <strong>{b.name}</strong> - {formatTime12Hour(b.start)} to {formatTime12Hour(b.end)} ({b.room})
+                <li key={i} className="text-gray-700">
+                  <strong>{b.name}</strong> - {formatTime12Hour(b.start)} to{" "}
+                  {formatTime12Hour(b.end)} ({b.room})
                 </li>
               ))}
             </ul>
@@ -480,7 +483,6 @@ const handleSubmit = async () => {
       </div>
     );
   };
-
   const renderWeekView = () => {
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
@@ -496,7 +498,7 @@ const handleSubmit = async () => {
           const dayStr = day.toDateString();
           const events = bookings.filter((b) => b.date === dayStr);
           return (
-            <div key={idx} className="border border-gray-300 rounded p-2 bg-white shadow-sm">
+            <div key={idx} className="border rounded p-2 bg-white shadow-sm">
               <div className="text-sm font-semibold text-gray-700 mb-1">
                 {day.toLocaleDateString("en-US", {
                   weekday: "short",
@@ -528,7 +530,7 @@ const handleSubmit = async () => {
     const events = bookings.filter((b) => b.date === dayStr);
 
     return (
-      <div className="bg-white border border-gray-300 rounded p-4 shadow-sm">
+      <div className="bg-white border rounded p-4 shadow-sm">
         <h3 className="font-semibold text-gray-700 mb-2">
           {currentDate.toLocaleDateString("en-US", {
             weekday: "long",
@@ -564,12 +566,12 @@ const handleSubmit = async () => {
     );
 
     return (
-      <div className="bg-white border border-gray-300 rounded p-4 shadow-sm text-sm">
+      <div className="bg-white border rounded p-4 shadow-sm text-sm">
         <h3 className="font-semibold text-gray-700 mb-2">Agenda View</h3>
         {sortedBookings.length > 0 ? (
           <ul className="space-y-2">
             {sortedBookings.map((b, i) => (
-              <li key={i} className="border-b border-gray-300 pb-2">
+              <li key={i} className="border-b pb-2">
                 <div className="text-blue-600 font-medium">
                   {new Date(b.date).toLocaleDateString("en-US", {
                     weekday: "short",
@@ -594,7 +596,6 @@ const handleSubmit = async () => {
       </div>
     );
   };
-
   const renderMiniCalendar = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -646,139 +647,17 @@ const handleSubmit = async () => {
     );
   };
 
- const handleSignOut = async () => {
-  try {
-    await signOut(auth);
-    toast.success('Signed out successfully!');
-    navigate('/');
-  } catch (error) {
-    toast.warning('Sign out failed: ' + error.message);
-  }
-};
-
-  useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          setUserName(user.displayName || "User");
-          setUserEmail(user.email || "");
-        } else {
-          setUserName("User");
-          setUserEmail("");
-        }
-      });
-      return () => unsubscribe();
-    }, []);
-
-  // Helper to get user initial
-  const getUserInitial = () => {
-    if (userName && userName.trim().length > 0) return userName[0].toUpperCase();
-    if (userEmail && userEmail.trim().length > 0) return userEmail[0].toUpperCase();
-    return 'U';
-  };
+  
 
   return (
-    <div className="min-h-screen bg-gray-100 relative ">
-      {/* Hamburger for mobile */}
-      <button
-        className="md:hidden fixed top-4 left-4 z-40 bg-blue-600 text-white p-2 rounded"
-        onClick={() => setSidebarOpen(true)}
-        aria-label="Open sidebar"
-      >
-        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      {/* Mobile sidebar drawer */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex">
-          <div className="bg-white w-3/4 max-w-xs p-4 space-y-4">
-            {/* Sidebar content (copy from below) */}
+    <div className="min-h-screen bg-white p-4">
+      <div className=" bg-white p-4">
+        <div className="flex flex-col md:flex-row">
+          <div className="w-full md:w-1/5 space-y-4">
             <h2 className="text-blue-600 font-bold text-lg">Appointment</h2>
             <div className="bg-gray-100 rounded-lg p-4">
               <h3 className="font-semibold mb-2">Appointment Calendar</h3>
-              {renderMiniCalendar()}
-            </div>
-            {renderTodaysSchedule()}
-            <div className="mt-4 flex justify-center">
-              <img src={logo} alt="Senthuron Tech" className="h-6" />
-              <span className="font-bold px-5 text-sm align-middle">Senthuron Tech</span>
-            </div>
-            <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded" onClick={() => setSidebarOpen(false)}>Close</button>
-          </div>
-          <div className="flex-1" onClick={() => setSidebarOpen(false)} />
-        </div>
-      )}
-      {/* Profile Section Header - Top Right Corner */}
-      <div className="absolute top-4 right-4 z-30 max-w-full">
-        <div className="relative">
-          <button
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            className="flex items-center space-x-4 rounded-md px-3 py-2 hover:bg-gray-100 transition"
-          >
-            {/* Avatar Image */}
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg border border-blue-700">
-              {getUserInitial()}
-            </div>
-            <svg
-              className="h-5 w-5 text-gray-600"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-          {showProfileDropdown && (
-            <div className="absolute right-0 z-20 mt-2 w-72 origin-top-right rounded-lg bg-gray-100 shadow-lg ring-1 ring-gray-300 ring-opacity-5 flex flex-col items-center p-6" style={{minWidth: '280px'}}>
-              {/* Triangle pointer */}
-              <div className="absolute -top-2 right-8 w-4 h-4">
-                <svg viewBox="0 0 24 24" className="w-4 h-4 text-gray-100 drop-shadow" style={{position: 'absolute', top: 0, left: 0}}>
-                  <polygon points="12,0 24,24 0,24" fill="#f3f4f6" />
-                </svg>
-              </div>
-              {/* Avatar */}
-               <div className="flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full border-2 border-blue-500 flex items-center justify-center mb-2 bg-blue-100">
-                  <span className="text-2xl text-blue-700 font-bold">
-                    {getUserInitial(userName, userEmail)}
-                  </span>
-                </div>
-                <div className="text-center">
-                  <div className="font-bold text-lg text-gray-800">{userName}</div>
-                  <div className="text-gray-600 text-sm mb-2">{userEmail}</div>
-                  <button
-                    className="border border-red-400 text-red-500 px-4 py-1 rounded-md hover:bg-red-50 transition text-sm"
-                    onClick={handleSignOut}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      {/* Main Content */}
-      <div className="bg-white shadow-sm ">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            {/* Logo Section */}
-            <div className="flex items-center space-x-3">
-              {/* You can put your logo here if needed */}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="min-h-screen bg-white p-4 sm:p-4">
-        <div className="bg-white p-2 sm:p-4">
-          <div className="flex flex-col md:flex-row">
-            {/* Sidebar: hidden on mobile, visible on md+ */}
-            <div className="hidden md:block w-full md:w-1/5 space-y-4">
-              <h2 className="text-blue-600 font-bold text-lg">Appointment</h2>
-              <div className="bg-gray-100 rounded-lg p-4">
-                {/* <h3 className="font-semibold mb-2">Appointment Calendar</h3> */}
+
               {renderMiniCalendar()}
             </div>
             {renderTodaysSchedule()}
@@ -796,18 +675,17 @@ const handleSubmit = async () => {
                 <span>Rejected</span>
               </div>
             </div>
-              <div className="mt-4 flex justify-center mt-30 mr-10">
-                <img src={logo} alt="Senthuron Tech" className="h-6" />
-                <span className="font-bold px-3 text-lg align-middle">Senthuron Tech</span>
+            <div className="mt-4 flex justify-center">
+              <img src={logo} alt="Senthuron Tech" className="h-10" />
+              <span className="font-bold px-5 text-3xl align-middle">Senthuron Tech</span>
             </div>
           </div>
-            {/* Main calendar/content area */}
-            <div className="w-full md:w-4/5 px-4  mx-auto">
-  <div className="bg-white shadow-lg rounded-2xl p-1">
-    <h1 className="text-3xl font-extrabold text-blue-700 text-center mb-3">
+
+          <div className="w-full md:w-4/5 px-4">
+            <h1 className="text-2xl font-bold text-center mb-2">
               Meeting Hall Booking
             </h1>
-    <p className="text-center text-gray-500 text-base mb-6">
+            <p className="text-center text-sm text-gray-600 mb-4">
               {viewMode === "month"
                 ? `${currentDate.toLocaleString("default", {
                     month: "long",
@@ -815,38 +693,33 @@ const handleSubmit = async () => {
                 : currentDate.toDateString()}
             </p>
 
-    {/* Navigation Controls */}
-    <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
-      <div className="flex gap-2">
+            <div className="flex justify-between mb-2">
+              <div>
                 <button
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 active:scale-95 focus:ring-2 focus:ring-blue-400 text-sm rounded-lg transition-all duration-150 shadow-sm"
+                  className="px-2 py-1 bg-gray-200 rounded"
                   onClick={handleToday}
                 >
                   Today
                 </button>
                 <button
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 active:scale-95 focus:ring-2 focus:ring-blue-400 text-sm rounded-lg transition-all duration-150 shadow-sm"
+                  className="px-2 py-1 ml-2 bg-gray-200 rounded"
                   onClick={handleBack}
                 >
                   Back
                 </button>
                 <button
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 active:scale-95 focus:ring-2 focus:ring-blue-400 text-sm rounded-lg transition-all duration-150 shadow-sm"
+                  className="px-2 py-1 ml-2 bg-gray-200 rounded"
                   onClick={handleNext}
                 >
                   Next
                 </button>
               </div>
-
-      {/* View Mode Buttons */}
-      <div className="flex gap-2">
+              <div>
                 {["month", "week", "day", "agenda"].map((m) => (
                   <button
                     key={m}
-            className={`px-4 py-2 text-sm rounded-lg transition border border-gray-300 ${
-              viewMode === m
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white hover:bg-gray-100 border-gray-300"
+                    className={`px-2 py-1 mr-1 rounded ${
+                      viewMode === m ? "bg-gray-300" : "bg-white border"
                     }`}
                     onClick={() => setViewMode(m)}
                   >
@@ -856,23 +729,12 @@ const handleSubmit = async () => {
               </div>
             </div>
 
-    {/* Calendar Container */}
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      {isLoading ? (
-        <div className="flex justify-center items-center min-h-[200px]">
-          <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-          </svg>
-        </div>
-      ) : (
-        <>
             {viewMode === "month" && (
-            <div className="min-w-[800px] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 border-t border-l border-gray-300 text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 border-t border-l text-sm">
                 {days.map((d) => (
                   <div
                     key={d}
-                  className="border-b border-r border-gray-300 p-3 font-semibold text-center bg-gray-50 text-gray-700"
+                    className="border-b border-r p-2 font-semibold text-center bg-gray-100"
                   >
                     {d}
                   </div>
@@ -883,16 +745,11 @@ const handleSubmit = async () => {
             {viewMode === "week" && renderWeekView()}
             {viewMode === "day" && renderDayView()}
             {viewMode === "agenda" && renderAgendaView()}
-        </>
-      )}
-    </div>
           </div>
-</div>
-
         </div>
 
         {modalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center  bg-[rgba(0,0,0,0.5)]">
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 z-50">
             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
               <h2 className="text-xl font-bold mb-4">
                 {selectedBooking ? "Edit Booking" : "Book Room"} -{" "}
@@ -905,7 +762,7 @@ const handleSubmit = async () => {
                   value={formData.name}
                   onChange={handleFormChange}
                   placeholder="Name"
-                    className="w-full border border-gray-300 px-4 py-2 rounded text-sm"
+                  className="w-full border px-4 py-2 rounded text-sm"
                   required
                 />
 
@@ -915,7 +772,7 @@ const handleSubmit = async () => {
                   value={formData.persons}
                   onChange={handleFormChange}
                   placeholder="Number of Persons"
-                    className="w-full border border-gray-300 px-4 py-2 rounded text-sm"
+                  className="w-full border px-4 py-2 rounded text-sm"
                   required
                 />
 
@@ -927,7 +784,7 @@ const handleSubmit = async () => {
                       type="time"
                       value={formData.start}
                       onChange={handleFormChange}
-                        className="w-full border border-gray-300 px-4 py-2 rounded text-sm"
+                      className="w-full border px-4 py-2 rounded text-sm"
                       required
                     />
                   </div>
@@ -938,7 +795,7 @@ const handleSubmit = async () => {
                       type="time"
                       value={formData.end}
                       onChange={handleFormChange}
-                        className="w-full border border-gray-300 px-4 py-2 rounded text-sm"
+                      className="w-full border px-4 py-2 rounded text-sm"
                       required
                     />
                   </div>
@@ -958,7 +815,7 @@ const handleSubmit = async () => {
                   name="room"
                   value={formData.room}
                   readOnly
-                    className="w-full border border-gray-300 px-4 py-2 rounded bg-gray-100 text-sm"
+                  className="w-full border px-4 py-2 rounded bg-gray-100 text-sm"
                 />
 
                 <textarea
@@ -966,7 +823,7 @@ const handleSubmit = async () => {
                   value={formData.reason}
                   onChange={handleFormChange}
                   placeholder="Reason for Booking"
-                    className="w-full border border-gray-300 px-4 py-2 rounded text-sm"
+                  className="w-full border px-4 py-2 rounded text-sm"
                   rows={3}
                   required
                 />
@@ -1012,7 +869,6 @@ const handleSubmit = async () => {
             </div>
           </div>
         )}
-        </div>
       </div>
     </div>
   );
